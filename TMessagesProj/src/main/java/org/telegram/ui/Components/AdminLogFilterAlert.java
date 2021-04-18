@@ -24,6 +24,7 @@ import android.widget.FrameLayout;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.tgnet.TLRPC;
@@ -120,11 +121,7 @@ public class AdminLogFilterAlert extends BottomSheet {
             pinnedRow = -1;
         }
         leavingRow = rowCount++;
-        if (isMegagroup) {
-            callsRow = rowCount++;
-        } else {
-            callsRow = -1;
-        }
+        callsRow = rowCount++;
         rowCount += 1;
         allAdminsRow = rowCount;
 
@@ -154,7 +151,7 @@ public class AdminLogFilterAlert extends BottomSheet {
                     height -= AndroidUtilities.statusBarHeight;
                 }
                 int measuredWidth = getMeasuredWidth();
-                int contentSize = AndroidUtilities.dp(48) + (isMegagroup ? 11 : 7) * AndroidUtilities.dp(48) + backgroundPaddingTop + AndroidUtilities.dp(17);
+                int contentSize = AndroidUtilities.dp(48) + (isMegagroup ? 11 : 8) * AndroidUtilities.dp(48) + backgroundPaddingTop + AndroidUtilities.dp(17);
                 if (currentAdmins != null) {
                     contentSize += (currentAdmins.size() + 1) * AndroidUtilities.dp(48) + AndroidUtilities.dp(20);
                 }
@@ -318,7 +315,7 @@ public class AdminLogFilterAlert extends BottomSheet {
                         ((CheckBoxCell) holder.itemView).setChecked(false, true);
                     }
                     for (int a = 0; a < currentAdmins.size(); a++) {
-                        TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(currentAdmins.get(a).user_id);
+                        TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(MessageObject.getPeerId(currentAdmins.get(a).peer));
                         selectedAdmins.put(user.id, user);
                     }
                 }
@@ -394,7 +391,7 @@ public class AdminLogFilterAlert extends BottomSheet {
 
         @Override
         public int getItemCount() {
-            return (isMegagroup ? 11 : 7) + (currentAdmins != null ? 2 + currentAdmins.size() : 0);
+            return (isMegagroup ? 11 : 8) + (currentAdmins != null ? 2 + currentAdmins.size() : 0);
         }
 
         @Override
@@ -469,7 +466,7 @@ public class AdminLogFilterAlert extends BottomSheet {
                 }
                 case 2: {
                     CheckBoxUserCell userCell = (CheckBoxUserCell) holder.itemView;
-                    int userId = currentAdmins.get(position - allAdminsRow - 1).user_id;
+                    int userId = MessageObject.getPeerId(currentAdmins.get(position - allAdminsRow - 1).peer);
                     userCell.setChecked(selectedAdmins == null || selectedAdmins.indexOfKey(userId) >= 0, false);
                     break;
                 }
@@ -514,7 +511,7 @@ public class AdminLogFilterAlert extends BottomSheet {
                 }
                 case 2: {
                     CheckBoxUserCell userCell = (CheckBoxUserCell) holder.itemView;
-                    int userId = currentAdmins.get(position - allAdminsRow - 1).user_id;
+                    int userId = MessageObject.getPeerId(currentAdmins.get(position - allAdminsRow - 1).peer);
                     userCell.setUser(MessagesController.getInstance(currentAccount).getUser(userId), selectedAdmins == null || selectedAdmins.indexOfKey(userId) >= 0, position != getItemCount() - 1);
                     break;
                 }
