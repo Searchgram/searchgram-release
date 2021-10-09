@@ -454,7 +454,7 @@ public class LocaleController {
     }
 
     public void checkUpdateForCurrentRemoteLocale(int currentAccount, int version, int baseVersion) {
-        if (currentLocaleInfo == null || currentLocaleInfo != null && !currentLocaleInfo.isRemote() && !currentLocaleInfo.isUnofficial()) {
+        if (currentLocaleInfo == null || !currentLocaleInfo.isRemote() && !currentLocaleInfo.isUnofficial()) {
             return;
         }
         if (currentLocaleInfo.hasBaseLang()) {
@@ -722,10 +722,8 @@ public class LocaleController {
                 if (remoteLanguagesDict.containsKey(localeInfo.getKey())) {
                     continue;
                 }
-                if (localeInfo != null) {
-                    remoteLanguages.add(localeInfo);
-                    remoteLanguagesDict.put(localeInfo.getKey(), localeInfo);
-                }
+                remoteLanguages.add(localeInfo);
+                remoteLanguagesDict.put(localeInfo.getKey(), localeInfo);
             }
         }
         locales = preferences.getString("unofficial", null);
@@ -733,10 +731,11 @@ public class LocaleController {
             String[] localesArr = locales.split("&");
             for (String locale : localesArr) {
                 LocaleInfo localeInfo = LocaleInfo.createWithString(locale);
-                localeInfo.shortName = localeInfo.shortName.replace("-", "_");
-                if (localeInfo != null) {
-                    unofficialLanguages.add(localeInfo);
+                if (localeInfo == null) {
+                    continue;
                 }
+                localeInfo.shortName = localeInfo.shortName.replace("-", "_");
+                unofficialLanguages.add(localeInfo);
             }
         }
     }
@@ -1077,6 +1076,8 @@ public class LocaleController {
             return LocaleController.formatPluralString("Hours", ttl / 60 / 60);
         } else if (ttl < 60 * 60 * 24 * 7) {
             return LocaleController.formatPluralString("Days", ttl / 60 / 60 / 24);
+        } else if (ttl >= 60 * 60 * 24 * 30 && ttl <= 60 * 60 * 24 * 31) {
+            return LocaleController.formatPluralString("Months", ttl / 60 / 60 / 24 / 30);
         } else {
             int days = ttl / 60 / 60 / 24;
             if (ttl % 7 == 0) {
@@ -1216,8 +1217,8 @@ public class LocaleController {
             int idx = result.indexOf(type);
             if (idx >= 0) {
                 idx += type.length();
-                if (idx < result.length() && result.charAt(idx + type.length()) != ' ') {
-                    result = result.substring(0, idx + type.length()) + " " + result.substring(idx + type.length());
+                if (idx < result.length() && result.charAt(idx) != ' ') {
+                    result = result.substring(0, idx) + " " + result.substring(idx);
                 }
             }
             return result;

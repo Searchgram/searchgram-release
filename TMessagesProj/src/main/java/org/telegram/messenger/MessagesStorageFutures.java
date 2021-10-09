@@ -15,7 +15,7 @@ public final class MessagesStorageFutures {
     }
 
     @AnyThread
-    public UIThreadFuture<ArrayList<MessageObject>> ftsSearch(String query, int minDate, int maxDate, Iterable<Long> usedIds, int limit) {
+    public UIThreadFuture<ArrayList<MessageObject>> ftsSearch(String query, int minDate, int maxDate, Iterable<MessageId> usedIds, int limit) {
         UIThreadFuture<ArrayList<MessageObject>> future = new UIThreadFuture<>();
 
         storage.getStorageQueue().postRunnable(() -> {
@@ -28,7 +28,7 @@ public final class MessagesStorageFutures {
     }
 
     @AnyThread
-    public UIThreadFuture<Tuple<Integer, ArrayList<MessageObject>, Void>> ftsSearchInChat(String query, long dialogId, int minDate, int maxDate, int limit, @Nullable Iterable<Long> usedMids) {
+    public UIThreadFuture<Tuple<Integer, ArrayList<MessageObject>, Void>> ftsSearchInChat(String query, long dialogId, int minDate, int maxDate, int limit, @Nullable Iterable<MessageId> usedMids) {
         UIThreadFuture<Tuple<Integer, ArrayList<MessageObject>, Void>> future = new UIThreadFuture<>();
 
         storage.getStorageQueue().postRunnable(() -> {

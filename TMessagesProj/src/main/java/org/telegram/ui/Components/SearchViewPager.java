@@ -2,14 +2,10 @@ package org.telegram.ui.Components;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
-import android.animation.ObjectAnimator;
-import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.view.View;
-import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -18,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ChatObject;
+import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.R;
@@ -44,9 +41,7 @@ import org.telegram.ui.FilteredSearchView;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
 
 public class SearchViewPager extends ViewPagerFixed implements FilteredSearchView.UiCallback {
 
@@ -54,7 +49,7 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
     public RecyclerListView searchListView;
     public StickerEmptyView emptyView;
     public DialogsSearchAdapter dialogsSearchAdapter;
-    private LinearLayoutManager searchlayoutManager;
+    private LinearLayoutManager searchLayoutManager;
     private RecyclerItemsEnterAnimator itemsEnterAnimator;
     private boolean attached;
 
@@ -94,7 +89,7 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
         this.folderId = folderId;
         parent = fragment;
         this.chatPreviewDelegate = chatPreviewDelegate;
-        dialogsSearchAdapter = new DialogsSearchAdapter(context, type, initialDialogsType, folderId) {
+        dialogsSearchAdapter = new DialogsSearchAdapter(context, type, initialDialogsType) {
             @Override
             public void notifyDataSetChanged() {
                 int itemCount = getCurrentItemCount();
@@ -127,7 +122,7 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
         searchListView.setVerticalScrollBarEnabled(true);
         searchListView.setInstantClick(true);
         searchListView.setVerticalScrollbarPosition(LocaleController.isRTL ? RecyclerListView.SCROLLBAR_POSITION_LEFT : RecyclerListView.SCROLLBAR_POSITION_RIGHT);
-        searchListView.setLayoutManager(searchlayoutManager = new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
+        searchListView.setLayoutManager(searchLayoutManager = new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
         searchListView.setAnimateEmptyView(true, 0);
         searchListView.setOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
@@ -139,10 +134,10 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
 
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                int firstVisibleItem = searchlayoutManager.findFirstVisibleItemPosition();
-                int visibleItemCount = Math.abs(searchlayoutManager.findLastVisibleItemPosition() - firstVisibleItem) + 1;
+                int firstVisibleItem = searchLayoutManager.findFirstVisibleItemPosition();
+                int visibleItemCount = Math.abs(searchLayoutManager.findLastVisibleItemPosition() - firstVisibleItem) + 1;
                 int totalItemCount = recyclerView.getAdapter().getItemCount();
-                if (visibleItemCount > 0 && searchlayoutManager.findLastVisibleItemPosition() == totalItemCount - 1 && !dialogsSearchAdapter.isMessagesSearchEndReached()) {
+                if (visibleItemCount > 0 && searchLayoutManager.findLastVisibleItemPosition() == totalItemCount - 1 && !dialogsSearchAdapter.isMessagesSearchEndReached()) {
                     dialogsSearchAdapter.loadMoreSearchMessages();
                 }
             }
@@ -154,8 +149,7 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
         noMediaFiltersSearchView.setChatPreviewDelegate(chatPreviewDelegate);
 
         searchContainer = new FrameLayout(context);
-        searchContainer.addView(searchListView);
-        searchContainer.addView(noMediaFiltersSearchView);
+
 
         FlickerLoadingView loadingView = new FlickerLoadingView(context);
         loadingView.setViewType(1);
@@ -176,9 +170,11 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
         emptyView.showProgress(true, false);
 
         searchContainer.addView(emptyView);
+        searchContainer.addView(searchListView);
+        searchContainer.addView(noMediaFiltersSearchView);
         searchListView.setEmptyView(emptyView);
 
-        itemsEnterAnimator = new RecyclerItemsEnterAnimator(searchListView);
+        itemsEnterAnimator = new RecyclerItemsEnterAnimator(searchListView, true);
 
         setAdapter(new ViewPagerFixed.Adapter() {
 
@@ -234,9 +230,10 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
     }
 
     private void search(View view, int position, String query, boolean reset) {
-        int dialogId = 0;
+        long dialogId = 0;
         long minDate = 0;
         long maxDate = 0;
+        boolean includeFolder = false;
         for (int i = 0; i < currentSearchFilters.size(); i++) {
             FiltersView.MediaFilterData data = currentSearchFilters.get(i);
             if (data.filterType == FiltersView.FILTER_TYPE_CHAT) {
@@ -248,13 +245,15 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
             } else if (data.filterType == FiltersView.FILTER_TYPE_DATE) {
                 minDate = data.dateData.minDate;
                 maxDate = data.dateData.maxDate;
+            } else if (data.filterType == FiltersView.FILTER_TYPE_ARCHIVE) {
+                includeFolder = true;
             }
         }
 
         if (view == searchContainer) {
             if (dialogId == 0 && minDate == 0 && maxDate == 0) {
                 lastSearchScrolledToTop = false;
-                dialogsSearchAdapter.searchDialogs(query);
+                dialogsSearchAdapter.searchDialogs(query, includeFolder ? 1 : 0);
                 dialogsSearchAdapter.setFiltersDelegate(filteredSearchViewDelegate, false);
                 noMediaFiltersSearchView.animate().setListener(null).cancel();
                 noMediaFiltersSearchView.setDelegate(null, false);
@@ -294,14 +293,14 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
                     }
                     noMediaFiltersSearchView.animate().alpha(1f).setDuration(150).start();
                 }
-                noMediaFiltersSearchView.search(dialogId, minDate, maxDate, null, query, reset);
+                noMediaFiltersSearchView.search(dialogId, minDate, maxDate, null, includeFolder, query, reset);
                 emptyView.setVisibility(View.GONE);
             }
             emptyView.setKeyboardHeight(keyboardSize, false);
             noMediaFiltersSearchView.setKeyboardHeight(keyboardSize, false);
         } else {
             ((FilteredSearchView)view).setKeyboardHeight(keyboardSize, false);
-            ((FilteredSearchView)view).search(dialogId, minDate, maxDate, FiltersView.filters[position - 1], query, reset);
+            ((FilteredSearchView)view).search(dialogId, minDate, maxDate, FiltersView.filters[position - 1], includeFolder, query, reset);
         }
     }
 
@@ -329,6 +328,9 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
 
     private void showActionMode(boolean show) {
         if (isActionModeShowed == show) {
+            return;
+        }
+        if (show && parent.getActionBar().isActionModeShowed()) {
             return;
         }
         if (show && !parent.getActionBar().actionModeIsExist(actionModeTag)) {
@@ -402,27 +404,23 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
                     for (int a = 0; a < dids.size(); a++) {
                         long did = dids.get(a);
                         if (message != null) {
-                            AccountInstance.getInstance(currentAccount).getSendMessagesHelper().sendMessage(message.toString(), did, null, null, null, true, null, null, null, true, 0);
+                            AccountInstance.getInstance(currentAccount).getSendMessagesHelper().sendMessage(message.toString(), did, null, null, null, true, null, null, null, true, 0, null);
                         }
-                        AccountInstance.getInstance(currentAccount).getSendMessagesHelper().sendMessage(fmessages, did, true, 0);
+                        AccountInstance.getInstance(currentAccount).getSendMessagesHelper().sendMessage(fmessages, did, false,false, true, 0);
                     }
                     fragment1.finishFragment();
                 } else {
                     long did = dids.get(0);
-                    int lower_part = (int) did;
-                    int high_part = (int) (did >> 32);
                     Bundle args1 = new Bundle();
                     args1.putBoolean("scrollToTopOnResume", true);
-                    if (lower_part != 0) {
-                        if (lower_part > 0) {
-                            args1.putInt("user_id", lower_part);
-                        } else if (lower_part < 0) {
-                            args1.putInt("chat_id", -lower_part);
-                        }
+                    if (DialogObject.isEncryptedDialog(did)) {
+                        args1.putInt("enc_id", DialogObject.getEncryptedChatId(did));
                     } else {
-                        args1.putInt("enc_id", high_part);
-                    }
-                    if (lower_part != 0) {
+                        if (DialogObject.isUserDialog(did)) {
+                            args1.putLong("user_id", did);
+                        } else {
+                            args1.putLong("chat_id", -did);
+                        }
                         if (!AccountInstance.getInstance(currentAccount).getMessagesController().checkCanOpenChat(args1, fragment1)) {
                             return;
                         }
@@ -438,21 +436,18 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
 
     public void goToMessage(MessageObject messageObject) {
         Bundle args = new Bundle();
-        int lower_part = (int) messageObject.getDialogId();
-        int high_id = (int) (messageObject.getDialogId() >> 32);
-        if (lower_part != 0) {
-            if (lower_part > 0) {
-                args.putInt("user_id", lower_part);
-            } else if (lower_part < 0) {
-                TLRPC.Chat chat = AccountInstance.getInstance(currentAccount).getMessagesController().getChat(-lower_part);
-                if (chat != null && chat.migrated_to != null) {
-                    args.putInt("migrated_to", lower_part);
-                    lower_part = -chat.migrated_to.channel_id;
-                }
-                args.putInt("chat_id", -lower_part);
-            }
+        long dialogId = messageObject.getDialogId();
+        if (DialogObject.isEncryptedDialog(dialogId)) {
+            args.putInt("enc_id", DialogObject.getEncryptedChatId(dialogId));
+        } else if (DialogObject.isUserDialog(dialogId)) {
+            args.putLong("user_id", dialogId);
         } else {
-            args.putInt("enc_id", high_id);
+            TLRPC.Chat chat = AccountInstance.getInstance(currentAccount).getMessagesController().getChat(-dialogId);
+            if (chat != null && chat.migrated_to != null) {
+                args.putLong("migrated_to", dialogId);
+                dialogId = -chat.migrated_to.channel_id;
+            }
+            args.putLong("chat_id", -dialogId);
         }
         args.putInt("message_id", messageObject.getId());
         parent.presentFragment(new ChatActivity(args));
@@ -607,7 +602,7 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
     public void reset() {
         setPosition(0);
         if (dialogsSearchAdapter.getItemCount() > 0) {
-            searchlayoutManager.scrollToPositionWithOffset(0, 0);
+            searchLayoutManager.scrollToPositionWithOffset(0, 0);
         }
         viewsByType.clear();
     }
@@ -638,7 +633,7 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
         this.showOnlyDialogsAdapter = showOnlyDialogsAdapter;
     }
 
-    public void messagesDeleted(int channelId, ArrayList<Integer> markAsDeletedMessages) {
+    public void messagesDeleted(long channelId, ArrayList<Integer> markAsDeletedMessages) {
         int n = viewsByType.size();
         for (int i = 0; i < n; i++) {
             View v = viewsByType.valueAt(i);
@@ -683,7 +678,7 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
     }
 
     public void runResultsEnterAnimation() {
-        itemsEnterAnimator.showItemsAnimated(animateFromCount);
+        itemsEnterAnimator.showItemsAnimated(animateFromCount > 0 ? animateFromCount + 1 : 0);
         animateFromCount = dialogsSearchAdapter.getItemCount();
     }
 

@@ -23,14 +23,13 @@ import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.Utilities;
-import org.telegram.messenger.voip.VoIPBaseService;
 import org.telegram.messenger.voip.VoIPService;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
 
 import java.util.Random;
 
-public class GroupCallPipButton extends FrameLayout implements NotificationCenter.NotificationCenterDelegate, VoIPBaseService.StateListener {
+public class GroupCallPipButton extends FrameLayout implements NotificationCenter.NotificationCenterDelegate, VoIPService.StateListener {
 
     Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     BlobDrawable blobDrawable = new BlobDrawable(8);
@@ -408,7 +407,13 @@ public class GroupCallPipButton extends FrameLayout implements NotificationCente
             }
             wavesEnter = showWaves ? 1f : 0f;
         }
-        String contentDescription = LocaleController.getString("VoipGroupVoiceChat", R.string.VoipGroupVoiceChat);
+        String contentDescription;
+        VoIPService voIPService = VoIPService.getSharedInstance();
+        if (voIPService != null && ChatObject.isChannelOrGiga(voIPService.getChat())) {
+            contentDescription = LocaleController.getString("VoipChannelVoiceChat", R.string.VoipChannelVoiceChat);
+        } else {
+            contentDescription = LocaleController.getString("VoipGroupVoiceChat", R.string.VoipGroupVoiceChat);
+        }
         if (state == MUTE_BUTTON_STATE_UNMUTE) {
             contentDescription +=  ", " + LocaleController.getString("VoipTapToMute", R.string.VoipTapToMute);
         } else if (state == MUTE_BUTTON_STATE_RECONNECT) {

@@ -8,9 +8,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import android.annotation.SuppressLint;
 import android.text.TextUtils;
-import android.util.SparseArray;
 import androidx.annotation.MainThread;
 import androidx.annotation.Nullable;
+import androidx.collection.LongSparseArray;
 import org.telegram.messenger.*;
 import org.telegram.messenger.Futures.UIThreadFuture;
 import org.telegram.messenger.infra.AndroidFuture;
@@ -23,11 +23,12 @@ import org.telegram.tgnet.TLRPC.Message;
 
 // a search session for results from fts and server with the same query
 public class SearchMessagesSession {
-	private static boolean debug = true && BuildVars.LOGS_ENABLED;
+	private static boolean debug = BuildVars.LOGS_ENABLED;
 
 	public final int currentAccount;
 	public final String query;
 	public final int pageSize;
+	public final int folderId;
 
 	// states for server search
 	private MessageObject lastServerMessage = null;
@@ -40,17 +41,18 @@ public class SearchMessagesSession {
 
 	private ArrayList<MessageObject> resultMessages = new ArrayList<>();
 	private ArrayList<MessageObject> pendingMessages = new ArrayList<>();
-	private Set<Long> seenMids = new HashSet<>();
+	private Set<MessageId> seenMids = new HashSet<>();
 
 	private AndroidFuture<Void> loadingFuture = null;
 
 	public static final SearchMessagesSession EMPTY_SESSION = new SearchMessagesSession(-1, "",
-                                                                                        20);
+                                                                                        20, 0);
 
-	public SearchMessagesSession(int currentAccount, @Nullable String query, int pageSize) {
+	public SearchMessagesSession(int currentAccount, @Nullable String query, int pageSize, int folderId) {
 		this.currentAccount = currentAccount;
 		this.query = query == null ? "" : query;
 		this.pageSize = pageSize;
+		this.folderId = folderId;
 
 		if (TextUtils.isEmpty(query)) {
 			serverReachesEnd = true;
@@ -113,6 +115,8 @@ public class SearchMessagesSession {
 			req.limit = 20;
 			req.q = query;
 			req.filter = new TLRPC.TL_inputMessagesFilterEmpty();
+			req.flags |= 1;
+			req.folder_id = folderId;
 
 			if (lastServerMessage == null) {
 				req.offset_rate = 0;
@@ -121,14 +125,7 @@ public class SearchMessagesSession {
 			} else {
 				req.offset_id = lastServerMessage.getId();
 				req.offset_rate = nextSearchRate;
-				int id;
-				if (lastServerMessage.messageOwner.peer_id.channel_id != 0) {
-					id = -lastServerMessage.messageOwner.peer_id.channel_id;
-				} else if (lastServerMessage.messageOwner.peer_id.chat_id != 0) {
-					id = -lastServerMessage.messageOwner.peer_id.chat_id;
-				} else {
-					id = lastServerMessage.messageOwner.peer_id.user_id;
-				}
+				long id = MessageObject.getPeerId(lastServerMessage.messageOwner.peer_id);
 				req.offset_peer = MessagesController.getInstance(currentAccount).getInputPeer(id);
 			}
 
@@ -202,8 +199,8 @@ public class SearchMessagesSession {
 
 	private ArrayList<MessageObject> processServerResponse(TLRPC.messages_Messages res) {
 		final ArrayList<MessageObject> messageObjects = new ArrayList<>();
-		SparseArray<Chat> chatsMap = new SparseArray<>();
-		SparseArray<TLRPC.User> usersMap = new SparseArray<>();
+		LongSparseArray<Chat> chatsMap = new LongSparseArray<>();
+		LongSparseArray<TLRPC.User> usersMap = new LongSparseArray<>();
 		for (int a = 0; a < res.chats.size(); a++) {
 			Chat chat = res.chats.get(a);
 			chatsMap.put(chat.id, chat);
@@ -214,8 +211,7 @@ public class SearchMessagesSession {
 		}
 		for (int a = 0; a < res.messages.size(); a++) {
 			Message message = res.messages.get(a);
-			MessageObject messageObject = new MessageObject(currentAccount, message, usersMap, chatsMap,
-			                                                false, true);
+			MessageObject messageObject = new MessageObject(currentAccount, message, usersMap, chatsMap, false, true);
 			messageObjects.add(messageObject);
 			messageObject.setQuery(query);
 		}
@@ -234,11 +230,11 @@ public class SearchMessagesSession {
 			MessageObject mo = messageObjects.get(a);
 			Message message = mo.messageOwner;
 			long did = MessageObject.getDialogId(message);
-			Integer maxId = MessagesController.getInstance(
+			int maxId = MessagesController.getInstance(
 					currentAccount).deletedHistory.get(did);
-			seenMids.add(mo.getIdWithChannel());
+			seenMids.add(MessageId.of(mo.getId(), did)); //seenMids.add(mo.getIdWithChannel()); // XXX: need another check
 
-			if (maxId != null && message.id <= maxId) { // skip deleted messages
+			if (message.id <= maxId) { // skip deleted messages
 				continue;
 			}
 			pendingMessages.add(mo);

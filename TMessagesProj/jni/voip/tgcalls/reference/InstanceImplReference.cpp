@@ -406,7 +406,10 @@ public:
         }
 		beginSendingVideo();
     }
-    
+
+    void sendVideoDeviceUpdated() {
+    }
+
     void setRequestedVideoAspect(float aspect) {
     }
 
@@ -844,11 +847,15 @@ private:
 
                 std::vector<webrtc::RtpCodecCapability> codecs;
                 for (auto &codec : capabilities.codecs) {
+#ifndef WEBRTC_DISABLE_H265
                     if (codec.name == cricket::kH265CodecName) {
                         codecs.insert(codecs.begin(), codec);
                     } else {
                         codecs.push_back(codec);
                     }
+#else
+                    codecs.push_back(codec);
+#endif
                 }
                 it->SetCodecPreferences(codecs);
 
@@ -1011,12 +1018,12 @@ PersistentState InstanceImplReference::getPersistentState() {
 
 void InstanceImplReference::stop(std::function<void(FinalState)> completion) {
     auto result = FinalState();
-    
+
     result.persistentState = getPersistentState();
     result.debugLog = logSink_->result();
     result.trafficStats = getTrafficStats();
     result.isRatingSuggested = false;
-    
+
     completion(result);
 }
 

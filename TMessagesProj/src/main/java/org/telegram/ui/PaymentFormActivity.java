@@ -45,7 +45,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.WindowManager;
-import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
@@ -640,9 +639,9 @@ public class PaymentFormActivity extends BaseFragment implements NotificationCen
                         }
                         if (event.getAction() == MotionEvent.ACTION_UP) {
                             CountrySelectActivity fragment = new CountrySelectActivity(false);
-                            fragment.setCountrySelectActivityDelegate((name, shortName) -> {
-                                inputFields[FIELD_COUNTRY].setText(name);
-                                countryName = shortName;
+                            fragment.setCountrySelectActivityDelegate((country) -> {
+                                inputFields[FIELD_COUNTRY].setText(country.name);
+                                countryName = country.shortname;
                             });
                             presentFragment(fragment);
                         }
@@ -1182,7 +1181,7 @@ public class PaymentFormActivity extends BaseFragment implements NotificationCen
                             }
                             if (event.getAction() == MotionEvent.ACTION_UP) {
                                 CountrySelectActivity fragment = new CountrySelectActivity(false);
-                                fragment.setCountrySelectActivityDelegate((name, shortName) -> inputFields[FIELD_CARD_COUNTRY].setText(name));
+                                fragment.setCountrySelectActivityDelegate((country) -> inputFields[FIELD_CARD_COUNTRY].setText(country.name));
                                 presentFragment(fragment);
                             }
                             return true;
@@ -2744,11 +2743,6 @@ public class PaymentFormActivity extends BaseFragment implements NotificationCen
                     if (task1.isSuccessful()) {
                         if (googlePayContainer != null) {
                             googlePayContainer.setVisibility(View.VISIBLE);
-                            AnimatorSet animatorSet = new AnimatorSet();
-                            animatorSet.playTogether(ObjectAnimator.ofFloat(googlePayContainer, View.ALPHA, 0.0f, 1.0f));
-                            animatorSet.setInterpolator(new DecelerateInterpolator());
-                            animatorSet.setDuration(180);
-                            animatorSet.start();
                         }
                     } else {
                         FileLog.e("isReadyToPay failed", task1.getException());
