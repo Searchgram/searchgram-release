@@ -7,4 +7,8 @@ Searchgram is an unofficial Telegram app with improved chats search.
 - Search in secure chats is supported. You don't need to envy iOS Telegram anymore.
 - The new search function ONLY runs on your device, no message content is sent outside your phone.
 
-https://play.google.com/store/apps/details?id=app.searchgram.messenger
+# Releases
+
+It's not easy to publish an unofficial Telegram client to Google Play due to various restrictions from both Telegram and Google Play review team. Please get the binaries from Github Releases: https://github.com/Searchgram/searchgram-release/releases.
+
+- Mar 9th, 2023. Sync features from upstream v9.5.0
