@@ -1,15 +1,15 @@
 # Searchgram
 
-Searchgram is an unofficial Telegram app with improved chats search.
+Searchgram is an unofficial Telegram app with improved chat search functionality.
 
-- A new search engine that works for messages in Chinese, Japanese, Korean and other languages.
-- Search for contacts and chats supports partial text match instead of full word match from the official Telegram app.
-- Search in secure chats is supported. You don't need to envy iOS Telegram anymore.
-- The new search function ONLY runs on your device, no message content is sent outside your phone.
+- It features a new search engine that can search for messages in Chinese, Japanese, Korean, and other languages.
+- When searching for contacts and chats, it supports partial text matching instead of requiring a full word match like the official Telegram app.
+- Additionally, it supports searching in secure chats, which was previously only available on Telegram iOS app.
+- Furthermore, the new search function only runs on your device, meaning no message content is sent outside of your phone.
 
 # Releases
 
-It's not easy to publish an unofficial Telegram client to Google Play due to various restrictions from both Telegram and Google Play review team. Please get the binaries from Github Releases: https://github.com/Searchgram/searchgram-release/releases.
+Publishing an unofficial Telegram client to Google Play can be difficult due to restrictions from both Telegram and the Google Play review team. For this reason, we recommend downloading the binaries from Github Releases instead: https://github.com/Searchgram/searchgram-release/releases.
 
 - Apr 06th, 2023. Sync features from upstream v9.5.8
 - Mar 27th, 2023. Sync features from upstream v9.5.6
