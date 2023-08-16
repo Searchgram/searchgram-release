@@ -12,6 +12,7 @@ Searchgram is an unofficial Telegram app with improved chat search functionality
 
 Publishing an unofficial Telegram client to Google Play can be difficult due to restrictions from both Telegram and the Google Play review team. For this reason, we recommend downloading the binaries from Github Releases instead: https://github.com/Searchgram/searchgram-release/releases.
 
+- Aug 16th, 2023. Sync feature from upstream 10.0.1 (3793)
 - Aug 7th, 2023. Sync features from upstream 9.7.6 (3721)
 - July 27th, 2023. Sync features from upstream 9.7.4 (3712)
 - July 24th, 2023. Sync features from upstream v9.7.2
